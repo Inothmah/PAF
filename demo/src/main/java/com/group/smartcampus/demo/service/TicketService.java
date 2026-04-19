@@ -64,9 +64,17 @@ public class TicketService {
                 .collect(Collectors.toList());
     }
 
-    // Get tickets created by user
-    public List<TicketResponseDto> getUserTickets(String userId) {
-        return ticketRepository.findByCreatedById(userId).stream()
+    // Get tickets created by user (handles transition from Email to ID)
+    public List<TicketResponseDto> getUserTickets(String userId, String email) {
+        List<IncidentTicket> ticketsById = ticketRepository.findByCreatedById(userId);
+        List<IncidentTicket> ticketsByEmail = ticketRepository.findByCreatedById(email);
+        
+        // Use a set or similar if duplicate management is needed, but typically they are distinct
+        ticketsById.addAll(ticketsByEmail.stream()
+                .filter(t -> !ticketsById.contains(t))
+                .collect(Collectors.toList()));
+
+        return ticketsById.stream()
                 .map(this::mapToResponseDto)
                 .collect(Collectors.toList());
     }
@@ -352,12 +360,19 @@ public class TicketService {
                 .orElseThrow(() -> new RuntimeException("Attachment not found"));
 
         try {
-            Path filePath = Paths.get(attachment.getFilePath());
+            // Rebuild path dynamically to be environment-agnostic
+            Path uploadPath = Paths.get(uploadDir, "tickets");
+            Path filePath = uploadPath.resolve(attachment.getStoredFileName());
             Resource resource = new UrlResource(filePath.toUri());
 
             if (resource.exists() || resource.isReadable()) {
                 return resource;
             } else {
+                // Fallback for older entries with different path structure
+                Path legacyPath = Paths.get(attachment.getFilePath());
+                resource = new UrlResource(legacyPath.toUri());
+                if (resource.exists() || resource.isReadable()) return resource;
+                
                 throw new RuntimeException("Could not read file: " + attachment.getStoredFileName());
             }
         } catch (MalformedURLException e) {
@@ -416,14 +431,22 @@ public class TicketService {
         // Include attachments by default
         dto.setAttachments(getTicketAttachments(ticket.getId()));
 
-        // Load user names
+        // Load user names (with fallback for Email vs ID transition)
         if (ticket.getCreatedById() != null) {
             userRepository.findById(ticket.getCreatedById())
-                    .ifPresent(user -> dto.setCreatedByName(user.getName()));
+                    .ifPresentOrElse(
+                        user -> dto.setCreatedByName(user.getName()),
+                        () -> userRepository.findByEmail(ticket.getCreatedById())
+                                .ifPresent(user -> dto.setCreatedByName(user.getName()))
+                    );
         }
         if (ticket.getAssignedToId() != null) {
             userRepository.findById(ticket.getAssignedToId())
-                    .ifPresent(user -> dto.setAssignedToName(user.getName()));
+                    .ifPresentOrElse(
+                        user -> dto.setAssignedToName(user.getName()),
+                        () -> userRepository.findByEmail(ticket.getAssignedToId())
+                                .ifPresent(user -> dto.setAssignedToName(user.getName()))
+                    );
         }
 
         // Load resource name

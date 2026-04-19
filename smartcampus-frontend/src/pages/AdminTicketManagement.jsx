@@ -94,6 +94,12 @@ const AdminTicketManagement = () => {
     finally { setLoadingTechnicians(false); }
   };
 
+  const openRejectModal = (ticket) => {
+    setSelectedTicket(ticket);
+    setShowRejectModal(true);
+    setRejectionReason('');
+  };
+
   const getStatusStyle = (status) => {
     switch (status) {
       case 'OPEN': return 'text-blue-600 bg-blue-50 border-blue-100';

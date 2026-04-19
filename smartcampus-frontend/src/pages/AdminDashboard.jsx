@@ -54,6 +54,7 @@ const AdminDashboard = () => {
   const navigateToResourceManagement = () => navigate('/admin/resources');
   const navigateToBookingManagement = () => navigate('/admin/bookings');
   const navigateToTicketManagement = () => navigate('/admin/tickets');
+  const navigateToUserManagement = () => navigate('/admin/users');
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-900">
@@ -139,18 +140,22 @@ const AdminDashboard = () => {
           {/* Quick Stats Grid */}
           <div className="lg:col-span-2 grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Total Users', val: stats.totalUsers, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-              { label: 'Admins', val: stats.adminUsers, icon: Shield, color: 'text-orange-500', bg: 'bg-orange-50' },
-              { label: 'Technicians', val: stats.technicianUsers, icon: Settings, color: 'text-blue-600', bg: 'bg-blue-50' },
-              { label: 'Regular', val: stats.regularUsers, icon: Users, color: 'text-orange-500', bg: 'bg-orange-50' },
+              { label: 'Total Users', val: stats.totalUsers, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', action: navigateToUserManagement },
+              { label: 'Admins', val: stats.adminUsers, icon: Shield, color: 'text-orange-500', bg: 'bg-orange-50', action: navigateToUserManagement },
+              { label: 'Technicians', val: stats.technicianUsers, icon: Settings, color: 'text-blue-600', bg: 'bg-blue-50', action: navigateToUserManagement },
+              { label: 'Regular', val: stats.regularUsers, icon: Users, color: 'text-orange-500', bg: 'bg-orange-50', action: navigateToUserManagement },
             ].map((s, i) => (
-              <div key={i} className="bg-white border border-slate-200 p-6 rounded-[1.5rem] flex flex-col items-center justify-center text-center shadow-sm">
-                <div className={`w-10 h-10 ${s.bg} ${s.color} rounded-xl flex items-center justify-center mb-3`}>
+              <button 
+                key={i} 
+                onClick={s.action}
+                className="bg-white border border-slate-200 p-6 rounded-[1.5rem] flex flex-col items-center justify-center text-center shadow-sm hover:border-blue-500 hover:bg-blue-50/30 transition-all group"
+              >
+                <div className={`w-10 h-10 ${s.bg} ${s.color} rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
                   <s.icon className="w-5 h-5" />
                 </div>
                 <h4 className="text-2xl font-black text-slate-900 leading-none mb-1">{s.val}</h4>
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{s.label}</p>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -227,12 +232,15 @@ const AdminDashboard = () => {
               </div>
               <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 flex flex-col justify-between">
                 <div>
-                  <Activity className="w-8 h-8 text-slate-600 mb-4" />
-                  <h4 className="text-lg font-bold text-slate-900">Support Staff</h4>
-                  <p className="text-slate-500 text-sm mb-6">Manage technician availability and assignments.</p>
+                  <Shield className="w-8 h-8 text-slate-600 mb-4" />
+                  <h4 className="text-lg font-bold text-slate-900">User Control</h4>
+                  <p className="text-slate-500 text-sm mb-6">Manage system access, roles, and security permissions.</p>
                 </div>
-                <button className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-4 rounded-xl transition-colors">
-                  Manage Staff
+                <button 
+                  onClick={navigateToUserManagement}
+                  className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-4 rounded-xl transition-colors shadow-lg shadow-slate-200"
+                >
+                  Manage Users
                 </button>
               </div>
             </div>

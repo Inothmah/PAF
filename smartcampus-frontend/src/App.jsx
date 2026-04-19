@@ -9,6 +9,7 @@ import BookingManagement from './pages/BookingManagement'
 import AdminBookingManagement from './pages/AdminBookingManagement'
 import UserTicketManagement from './pages/UserTicketManagement'
 import AdminTicketManagement from './pages/AdminTicketManagement'
+import UserManagement from './pages/UserManagement'
 import Notifications from './pages/Notifications'
 import './App.css'
 
@@ -31,6 +32,7 @@ function App() {
           <Route path="/admin/resources" element={<ProtectedRoute requiredRole="ADMIN"><ResourceManagement /></ProtectedRoute>} />
           <Route path="/admin/bookings" element={<ProtectedRoute requiredRole="ADMIN"><AdminBookingManagement /></ProtectedRoute>} />
           <Route path="/admin/tickets" element={<ProtectedRoute requiredRole="ADMIN"><AdminTicketManagement /></ProtectedRoute>} />
+          <Route path="/admin/users" element={<ProtectedRoute requiredRole="ADMIN"><UserManagement /></ProtectedRoute>} />
           
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

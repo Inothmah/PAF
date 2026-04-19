@@ -5,7 +5,10 @@ import com.group.smartcampus.demo.model.TicketStatus;
 import com.group.smartcampus.demo.service.TicketService;
 import com.group.smartcampus.demo.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -238,6 +241,23 @@ public class TicketController {
             return ResponseEntity.ok(attachments);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(null);
+        }
+    }
+
+    // Get actual file content
+    @GetMapping("/attachments/{attachmentId}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('TECHNICIAN')")
+    public ResponseEntity<Resource> getAttachmentFile(@PathVariable String attachmentId) {
+        try {
+            Resource resource = ticketService.getAttachmentResource(attachmentId);
+            String contentType = ticketService.getAttachmentContentType(attachmentId);
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
+                    .body(resource);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
         }
     }
 

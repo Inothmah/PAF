@@ -8,7 +8,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -343,6 +346,31 @@ public class TicketService {
         attachmentRepository.delete(attachment);
     }
 
+    // Get attachment as a Resource for file serving
+    public Resource getAttachmentResource(String attachmentId) {
+        TicketAttachment attachment = attachmentRepository.findById(attachmentId)
+                .orElseThrow(() -> new RuntimeException("Attachment not found"));
+
+        try {
+            Path filePath = Paths.get(attachment.getFilePath());
+            Resource resource = new UrlResource(filePath.toUri());
+
+            if (resource.exists() || resource.isReadable()) {
+                return resource;
+            } else {
+                throw new RuntimeException("Could not read file: " + attachment.getStoredFileName());
+            }
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("Error: " + e.getMessage());
+        }
+    }
+
+    public String getAttachmentContentType(String attachmentId) {
+        TicketAttachment attachment = attachmentRepository.findById(attachmentId)
+                .orElseThrow(() -> new RuntimeException("Attachment not found"));
+        return attachment.getContentType();
+    }
+
     // Delete ticket and all related data
     public void deleteTicket(String ticketId, String userId, boolean isAdmin) throws IOException {
         IncidentTicket ticket = ticketRepository.findById(ticketId)
@@ -384,6 +412,9 @@ public class TicketService {
         dto.setRejectionReason(ticket.getRejectionReason());
         dto.setCreatedAt(ticket.getCreatedAt());
         dto.setUpdatedAt(ticket.getUpdatedAt());
+
+        // Include attachments by default
+        dto.setAttachments(getTicketAttachments(ticket.getId()));
 
         // Load user names
         if (ticket.getCreatedById() != null) {

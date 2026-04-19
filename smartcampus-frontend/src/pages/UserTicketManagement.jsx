@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { ticketService } from '../services/ticketService';
 import TicketForm from '../components/TicketForm';
+import TicketImageGallery from '../components/TicketImageGallery';
 
 const UserTicketManagement = () => {
   const navigate = useNavigate();
@@ -234,6 +235,12 @@ const UserTicketManagement = () => {
                 <p className="text-red-600 font-black mb-4 uppercase tracking-[0.3em]">-- Incident Data --</p>
                 {selectedTicket.description}
               </div>
+
+              {selectedTicket.attachments && selectedTicket.attachments.length > 0 && (
+                <div className="pt-4 border-t border-slate-100">
+                  <TicketImageGallery attachments={selectedTicket.attachments} />
+                </div>
+              )}
             </div>
             
             <div className="p-8 bg-slate-50 text-center">

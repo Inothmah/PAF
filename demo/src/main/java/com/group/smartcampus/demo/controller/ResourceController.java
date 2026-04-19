@@ -17,7 +17,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/resources")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class ResourceController {
 
     private final ResourceService resourceService;

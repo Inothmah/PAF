@@ -64,8 +64,10 @@ const BookingForm = ({ resource = null, onSave, onCancel }) => {
     } else if (formData.startTime) {
       const start = new Date(formData.startTime);
       const end = new Date(formData.endTime);
-      if (end <= start) {
-        errors.endTime = "End time must be after start time";
+      if (end.getTime() === start.getTime()) {
+        errors.endTime = "Start time and end time cannot be equal";
+      } else if (end < start) {
+        errors.endTime = "End schedule cannot be earlier than start schedule";
       }
     }
 
@@ -114,8 +116,10 @@ const BookingForm = ({ resource = null, onSave, onCancel }) => {
       if (nextFormData.startTime && nextFormData.endTime) {
         const start = new Date(nextFormData.startTime);
         const end = new Date(nextFormData.endTime);
-        if (end <= start) {
-          newErrors.endTime = "End time must be after start time";
+        if (end.getTime() === start.getTime()) {
+          newErrors.endTime = "Start time and end time cannot be equal";
+        } else if (end < start) {
+          newErrors.endTime = "End schedule cannot be earlier than start schedule";
         } else {
           newErrors.endTime = undefined;
         }

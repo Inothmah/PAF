@@ -11,6 +11,8 @@ const Register = () => {
         password: '',
         confirmPassword: ''
     });
+    const [errors, setErrors] = useState({});
+    const [touched, setTouched] = useState({});
     const navigate = useNavigate();
     const { register, loading, error, clearError, isAuthenticated } = useAuth();
 
@@ -20,16 +22,85 @@ const Register = () => {
         }
     }, [isAuthenticated, navigate]);
 
+    const validateField = (name, value) => {
+        let newErrors = { ...errors };
+        
+        switch (name) {
+            case 'name':
+                if (!value.trim()) newErrors.name = 'Full name is required';
+                else if (value.trim().length < 2) newErrors.name = 'Name must be at least 2 characters';
+                else delete newErrors.name;
+                break;
+            case 'email':
+                if (!value) newErrors.email = 'Email address is required';
+                else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value)) 
+                    newErrors.email = 'Please enter a valid email address';
+                else delete newErrors.email;
+                break;
+            case 'password':
+                if (!value) newErrors.password = 'Password is required';
+                else if (value.length < 8) newErrors.password = 'Password must be at least 8 characters';
+                else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(value)) 
+                    newErrors.password = 'Password does not meet all security requirements';
+                else delete newErrors.password;
+                
+                // Re-validate confirmation if it exists
+                if (formData.confirmPassword && value !== formData.confirmPassword) {
+                    newErrors.confirmPassword = 'Passwords do not match';
+                } else if (formData.confirmPassword) {
+                    delete newErrors.confirmPassword;
+                }
+                break;
+            case 'confirmPassword':
+                if (!value) newErrors.confirmPassword = 'Please confirm your password';
+                else if (value !== formData.password) newErrors.confirmPassword = 'Passwords do not match';
+                else delete newErrors.confirmPassword;
+                break;
+            default:
+                break;
+        }
+        setErrors(newErrors);
+    };
+
+    const getPasswordRequirements = () => {
+        const pass = formData.password;
+        return [
+            { label: 'At least 8 characters', met: pass.length >= 8 },
+            { label: 'At least one uppercase letter', met: /[A-Z]/.test(pass) },
+            { label: 'At least one lowercase letter', met: /[a-z]/.test(pass) },
+            { label: 'At least one number', met: /\d/.test(pass) },
+            { label: 'At least one special character (@$!%*?&)', met: /[@$!%*?&]/.test(pass) }
+        ];
+    };
+
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
+        if (touched[name]) validateField(name, value);
+    };
+
+    const handleBlur = (e) => {
+        const { name, value } = e.target;
+        setTouched({ ...touched, [name]: true });
+        validateField(name, value);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         clearError();
         
-        if (formData.password !== formData.confirmPassword) {
-            alert('Passwords do not match!');
+        // Final validation check for all fields
+        const names = ['name', 'email', 'password', 'confirmPassword'];
+        const currentTouched = {};
+        names.forEach(n => {
+            currentTouched[n] = true;
+            validateField(n, formData[n]);
+        });
+        setTouched(currentTouched);
+
+        // Check if there are any errors after manual validation trigger
+        // Note: setErrors is async, so we manually check the values here for the current submission
+        if (Object.keys(errors).length > 0 || !formData.name || !formData.email || !formData.password || formData.password !== formData.confirmPassword) {
             return;
         }
 
@@ -125,10 +196,28 @@ const Register = () => {
                                             required
                                             value={formData.name}
                                             onChange={handleChange}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 py-3.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
+                                            onBlur={handleBlur}
+                                            className={`w-full bg-slate-50 border transition-all duration-200 rounded-2xl pl-12 py-3.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 
+                                                ${touched.name 
+                                                    ? errors.name 
+                                                        ? 'border-red-500 ring-red-100' 
+                                                        : 'border-emerald-500 ring-emerald-100' 
+                                                    : 'border-slate-200 focus:border-orange-500 focus:ring-orange-100'}`}
                                             placeholder="John Doe"
                                         />
+                                        {touched.name && !errors.name && formData.name && (
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500 animate-in zoom-in duration-300">
+                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+                                        )}
                                     </div>
+                                    {touched.name && errors.name && (
+                                        <p className="mt-2 text-xs font-bold text-red-500 uppercase tracking-widest flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
+                                            <AlertCircle className="w-3.5 h-3.5" /> {errors.name}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -141,10 +230,28 @@ const Register = () => {
                                             required
                                             value={formData.email}
                                             onChange={handleChange}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 py-3.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
+                                            onBlur={handleBlur}
+                                            className={`w-full bg-slate-50 border transition-all duration-200 rounded-2xl pl-12 py-3.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 
+                                                ${touched.email 
+                                                    ? errors.email 
+                                                        ? 'border-red-500 ring-red-100' 
+                                                        : 'border-emerald-500 ring-emerald-100' 
+                                                    : 'border-slate-200 focus:border-orange-500 focus:ring-orange-100'}`}
                                             placeholder="student@unisphere.edu"
                                         />
+                                        {touched.email && !errors.email && formData.email && (
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500 animate-in zoom-in duration-300">
+                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+                                        )}
                                     </div>
+                                    {touched.email && errors.email && (
+                                        <p className="mt-2 text-xs font-bold text-red-500 uppercase tracking-widest flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
+                                            <AlertCircle className="w-3.5 h-3.5" /> {errors.email}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -157,17 +264,50 @@ const Register = () => {
                                             required
                                             value={formData.password}
                                             onChange={handleChange}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-12 py-3.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
+                                            onBlur={handleBlur}
+                                            className={`w-full bg-slate-50 border transition-all duration-200 rounded-2xl pl-12 pr-12 py-3.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 
+                                                ${touched.password 
+                                                    ? errors.password 
+                                                        ? 'border-red-500 ring-red-100' 
+                                                        : 'border-emerald-500 ring-emerald-100' 
+                                                    : 'border-slate-200 focus:border-orange-500 focus:ring-orange-100'}`}
                                             placeholder="Create password"
                                         />
                                         <button
                                             type="button"
                                             onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                                         >
                                             {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                         </button>
                                     </div>
+
+                                    {/* Password Requirements Checklist */}
+                                    <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Security Requirements</p>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
+                                            {getPasswordRequirements().map((req, idx) => (
+                                                <div key={idx} className="flex items-center gap-2">
+                                                    <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-colors duration-300 ${req.met ? 'bg-emerald-500' : 'bg-slate-200'}`}>
+                                                        {req.met && (
+                                                            <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
+                                                            </svg>
+                                                        )}
+                                                    </div>
+                                                    <span className={`text-[11px] font-medium transition-colors duration-300 ${req.met ? 'text-emerald-600' : 'text-slate-500'}`}>
+                                                        {req.label}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {touched.password && errors.password && (
+                                        <p className="mt-3 text-xs font-bold text-red-500 uppercase tracking-widest leading-tight animate-in fade-in slide-in-from-top-1 flex items-start gap-1.5 shrink-0">
+                                            <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" /> {errors.password}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -180,10 +320,28 @@ const Register = () => {
                                             required
                                             value={formData.confirmPassword}
                                             onChange={handleChange}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-12 py-3.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
+                                            onBlur={handleBlur}
+                                            className={`w-full bg-slate-50 border transition-all duration-200 rounded-2xl pl-12 pr-12 py-3.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 
+                                                ${touched.confirmPassword 
+                                                    ? errors.confirmPassword 
+                                                        ? 'border-red-500 ring-red-100' 
+                                                        : 'border-emerald-500 ring-emerald-100' 
+                                                    : 'border-slate-200 focus:border-orange-500 focus:ring-orange-100'}`}
                                             placeholder="Confirm password"
                                         />
+                                        {touched.confirmPassword && !errors.confirmPassword && formData.confirmPassword && (
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500 animate-in zoom-in duration-300">
+                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+                                        )}
                                     </div>
+                                    {touched.confirmPassword && errors.confirmPassword && (
+                                        <p className="mt-2 text-xs font-bold text-red-500 uppercase tracking-widest flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
+                                            <AlertCircle className="w-3.5 h-3.5" /> {errors.confirmPassword}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <button

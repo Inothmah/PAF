@@ -61,8 +61,14 @@ const BookingManagement = () => {
     setTimeout(() => setSuccessMessage(null), 3000);
   };
 
-  const handleCancelBooking = async (bookingId) => {
+  const handleCancelBooking = async (bookingId, currentStatus) => {
+    if (currentStatus === 'PENDING') {
+      setError("Cannot cancel a pending reservation.");
+      return;
+    }
+
     if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+    
     try {
       await bookingService.cancelBooking(bookingId);
       setSuccessMessage('Booking cancelled successfully');
@@ -203,11 +209,20 @@ const BookingManagement = () => {
                         </td>
                         <td className="py-6 px-8 text-center">
                           <div className="flex justify-center items-center gap-2">
-                            {booking.status === 'APPROVED' || booking.status === 'PENDING' ? (
+                            {booking.status === 'APPROVED' ? (
                               <button
-                                onClick={() => handleCancelBooking(booking.id)}
+                                onClick={() => handleCancelBooking(booking.id, booking.status)}
                                 className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-400 rounded-xl font-black text-[9px] uppercase tracking-widest border border-slate-100 transition-all
-                                group-hover:bg-black group-hover:text-white group-hover:border-black hover:!bg-red-600"
+                                group-hover:bg-black group-hover:text-white group-hover:border-black hover:!bg-red-600 cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" /> Cancel
+                              </button>
+                            ) : booking.status === 'PENDING' ? (
+                              <button
+                                disabled
+                                className="flex items-center gap-2 px-4 py-2 bg-transparent text-slate-300 rounded-xl font-black text-[9px] uppercase tracking-widest border-2 border-slate-100 transition-all opacity-50 cursor-not-allowed
+                                group-hover:border-slate-200 group-hover:text-slate-400"
+                                title="Cancellation is unavailable while Pending"
                               >
                                 <Trash2 className="w-4 h-4" /> Cancel
                               </button>

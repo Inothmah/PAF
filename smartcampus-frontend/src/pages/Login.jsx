@@ -8,6 +8,8 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [errors, setErrors] = useState({});
+    const [touched, setTouched] = useState({});
     const navigate = useNavigate();
     const { login, googleLogin, loading, error, clearError, isAuthenticated } = useAuth();
 
@@ -17,9 +19,43 @@ const Login = () => {
         }
     }, [isAuthenticated, navigate]);
 
+    const validate = (field, value) => {
+        let newErrors = { ...errors };
+        if (field === 'email') {
+            if (!value) newErrors.email = 'Email address is required';
+            else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value)) 
+                newErrors.email = 'Please enter a valid email address';
+            else delete newErrors.email;
+        }
+        if (field === 'password') {
+            if (!value) newErrors.password = 'Password is required';
+            else if (value.length < 1) newErrors.password = 'Password is required';
+            else delete newErrors.password;
+        }
+        setErrors(newErrors);
+    };
+
+    const handleBlur = (field) => {
+        setTouched({ ...touched, [field]: true });
+        validate(field, field === 'email' ? email : password);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         clearError();
+
+        // Final validation check
+        const emailValid = /\S+@\S+\.\S+/.test(email);
+        const passValid = password.length > 0;
+
+        if (!emailValid || !passValid) {
+            setErrors({
+                email: !emailValid ? 'Please enter a valid email address' : undefined,
+                password: !passValid ? 'Password is required' : undefined
+            });
+            setTouched({ email: true, password: true });
+            return;
+        }
         
         try {
             await login({ email, password });
@@ -117,11 +153,32 @@ const Login = () => {
                                             type="email"
                                             required
                                             value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 py-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
+                                            onChange={(e) => {
+                                                setEmail(e.target.value);
+                                                if (touched.email) validate('email', e.target.value);
+                                            }}
+                                            onBlur={() => handleBlur('email')}
+                                            className={`w-full bg-slate-50 border transition-all duration-200 rounded-2xl pl-12 py-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 
+                                                ${touched.email 
+                                                    ? errors.email 
+                                                        ? 'border-red-500 ring-red-100' 
+                                                        : 'border-emerald-500 ring-emerald-100' 
+                                                    : 'border-slate-200 focus:border-orange-500 focus:ring-orange-100'}`}
                                             placeholder="student@unisphere.edu"
                                         />
+                                        {touched.email && !errors.email && email && (
+                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500 animate-in zoom-in duration-300">
+                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+                                        )}
                                     </div>
+                                    {touched.email && errors.email && (
+                                        <p className="mt-2 text-xs font-bold text-red-500 uppercase tracking-widest flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
+                                            <AlertCircle className="w-3.5 h-3.5" /> {errors.email}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div>
@@ -137,8 +194,17 @@ const Login = () => {
                                             type={showPassword ? "text" : "password"}
                                             required
                                             value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-12 py-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100 transition-all"
+                                            onChange={(e) => {
+                                                setPassword(e.target.value);
+                                                if (touched.password) validate('password', e.target.value);
+                                            }}
+                                            onBlur={() => handleBlur('password')}
+                                            className={`w-full bg-slate-50 border transition-all duration-200 rounded-2xl pl-12 pr-12 py-4 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 
+                                                ${touched.password 
+                                                    ? errors.password 
+                                                        ? 'border-red-500 ring-red-100' 
+                                                        : 'border-emerald-500 ring-emerald-100' 
+                                                    : 'border-slate-200 focus:border-orange-500 focus:ring-orange-100'}`}
                                             placeholder="••••••••••"
                                         />
                                         <button
@@ -148,7 +214,19 @@ const Login = () => {
                                         >
                                             {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                         </button>
+                                        {touched.password && !errors.password && password && (
+                                            <div className="absolute right-12 top-1/2 -translate-y-1/2 text-emerald-500 animate-in zoom-in duration-300">
+                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </div>
+                                        )}
                                     </div>
+                                    {touched.password && errors.password && (
+                                        <p className="mt-2 text-xs font-bold text-red-500 uppercase tracking-widest flex items-center gap-1.5 animate-in fade-in slide-in-from-top-1">
+                                            <AlertCircle className="w-3.5 h-3.5" /> {errors.password}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <button

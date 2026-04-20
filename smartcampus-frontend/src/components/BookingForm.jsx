@@ -126,6 +126,17 @@ const BookingForm = ({ resource = null, onSave, onCancel }) => {
       }
     }
 
+    // Apply real-time validation for expected personnel
+    if (field === 'expectedAttendees') {
+      if (value !== '' && value > 1000) {
+        newErrors.expectedAttendees = "Capacity cannot exceed 1,000 personnel";
+      } else if (value !== '' && value < 1) {
+        newErrors.expectedAttendees = "Must have at least 1 expected personnel";
+      } else {
+        newErrors.expectedAttendees = undefined;
+      }
+    }
+
     setFormErrors(newErrors);
   };
 

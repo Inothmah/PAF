@@ -14,9 +14,12 @@ import {
   MapPin,
   Clock,
   Globe,
-  Briefcase
+  Briefcase,
+  ChevronRight,
+  Eye
 } from 'lucide-react';
 import { ticketService } from '../services/ticketService';
+import TicketImageGallery from '../components/TicketImageGallery';
 
 const AdminTicketManagement = () => {
   const navigate = useNavigate();
@@ -32,6 +35,7 @@ const AdminTicketManagement = () => {
   const [technicians, setTechnicians] = useState([]);
   const [selectedTechnician, setSelectedTechnician] = useState('');
   const [loadingTechnicians, setLoadingTechnicians] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   useEffect(() => {
     loadTickets();
@@ -88,6 +92,12 @@ const AdminTicketManagement = () => {
       setTechnicians(techs);
     } catch (err) { setError('Failed to load technicians: ' + err.message); }
     finally { setLoadingTechnicians(false); }
+  };
+
+  const openRejectModal = (ticket) => {
+    setSelectedTicket(ticket);
+    setShowRejectModal(true);
+    setRejectionReason('');
   };
 
   const getStatusStyle = (status) => {
@@ -209,6 +219,13 @@ const AdminTicketManagement = () => {
                       </td>
                       <td className="py-5 px-6 text-right">
                         <div className="flex justify-end gap-2">
+                          <button 
+                            onClick={() => { setSelectedTicket(ticket); setShowDetailsModal(true); }} 
+                            className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center hover:bg-black transition-all shadow-sm"
+                            title="Examine Report"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
                           {ticket.status === 'OPEN' && (
                             <>
                               <button onClick={() => openAssignModal(ticket)} className="w-9 h-9 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">
@@ -290,6 +307,47 @@ const AdminTicketManagement = () => {
                 Finalize Rejection
               </button>
               <button onClick={() => setShowRejectModal(false)} className="w-full py-2 text-slate-400 font-bold text-sm">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Details Modal */}
+      {showDetailsModal && selectedTicket && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[100] p-6">
+          <div className="bg-white rounded-[3rem] border-t-[12px] border-slate-900 w-full max-w-2xl overflow-hidden shadow-2xl animate-in zoom-in-95">
+            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <h2 className="text-xl font-black uppercase text-slate-900 tracking-tighter">Incident Diagnostic</h2>
+              <button onClick={() => setShowDetailsModal(false)} className="p-3 bg-white rounded-2xl text-slate-900 border-2 border-slate-100 hover:border-slate-900 transition-all">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-10 space-y-8 max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-2 gap-6">
+                <div className="p-6 bg-slate-50 rounded-3xl border-2 border-slate-100">
+                  <p className="text-[10px] font-black text-slate-400 uppercase mb-2">Category</p>
+                  <p className="text-sm font-black text-slate-900 uppercase">{selectedTicket.category}</p>
+                </div>
+                <div className="p-6 bg-orange-50 rounded-3xl border-2 border-orange-200">
+                  <p className="text-[10px] font-black text-orange-600 uppercase mb-2">Priority</p>
+                  <p className="text-sm font-black text-orange-600 uppercase">{selectedTicket.priority}</p>
+                </div>
+              </div>
+              <div className="p-8 bg-slate-900 rounded-[2rem] text-white font-mono text-sm leading-relaxed border-l-8 border-orange-500 shadow-inner">
+                <p className="text-orange-500 font-black mb-4 uppercase tracking-[0.3em]">-- Incident Log --</p>
+                {selectedTicket.description}
+              </div>
+
+              {selectedTicket.attachments && selectedTicket.attachments.length > 0 && (
+                <div className="pt-4 border-t border-slate-100">
+                  <TicketImageGallery attachments={selectedTicket.attachments} />
+                </div>
+              )}
+            </div>
+            
+            <div className="p-8 bg-slate-50 text-center">
+               <button onClick={() => setShowDetailsModal(false)} className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-black transition-all shadow-xl shadow-slate-200">Terminate View</button>
             </div>
           </div>
         </div>

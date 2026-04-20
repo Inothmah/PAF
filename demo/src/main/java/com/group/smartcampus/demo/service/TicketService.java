@@ -8,7 +8,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -61,9 +64,17 @@ public class TicketService {
                 .collect(Collectors.toList());
     }
 
-    // Get tickets created by user
-    public List<TicketResponseDto> getUserTickets(String userId) {
-        return ticketRepository.findByCreatedById(userId).stream()
+    // Get tickets created by user (handles transition from Email to ID)
+    public List<TicketResponseDto> getUserTickets(String userId, String email) {
+        List<IncidentTicket> ticketsById = ticketRepository.findByCreatedById(userId);
+        List<IncidentTicket> ticketsByEmail = ticketRepository.findByCreatedById(email);
+        
+        // Use a set or similar if duplicate management is needed, but typically they are distinct
+        ticketsById.addAll(ticketsByEmail.stream()
+                .filter(t -> !ticketsById.contains(t))
+                .collect(Collectors.toList()));
+
+        return ticketsById.stream()
                 .map(this::mapToResponseDto)
                 .collect(Collectors.toList());
     }
@@ -343,6 +354,38 @@ public class TicketService {
         attachmentRepository.delete(attachment);
     }
 
+    // Get attachment as a Resource for file serving
+    public Resource getAttachmentResource(String attachmentId) {
+        TicketAttachment attachment = attachmentRepository.findById(attachmentId)
+                .orElseThrow(() -> new RuntimeException("Attachment not found"));
+
+        try {
+            // Rebuild path dynamically to be environment-agnostic
+            Path uploadPath = Paths.get(uploadDir, "tickets");
+            Path filePath = uploadPath.resolve(attachment.getStoredFileName());
+            Resource resource = new UrlResource(filePath.toUri());
+
+            if (resource.exists() || resource.isReadable()) {
+                return resource;
+            } else {
+                // Fallback for older entries with different path structure
+                Path legacyPath = Paths.get(attachment.getFilePath());
+                resource = new UrlResource(legacyPath.toUri());
+                if (resource.exists() || resource.isReadable()) return resource;
+                
+                throw new RuntimeException("Could not read file: " + attachment.getStoredFileName());
+            }
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("Error: " + e.getMessage());
+        }
+    }
+
+    public String getAttachmentContentType(String attachmentId) {
+        TicketAttachment attachment = attachmentRepository.findById(attachmentId)
+                .orElseThrow(() -> new RuntimeException("Attachment not found"));
+        return attachment.getContentType();
+    }
+
     // Delete ticket and all related data
     public void deleteTicket(String ticketId, String userId, boolean isAdmin) throws IOException {
         IncidentTicket ticket = ticketRepository.findById(ticketId)
@@ -385,14 +428,25 @@ public class TicketService {
         dto.setCreatedAt(ticket.getCreatedAt());
         dto.setUpdatedAt(ticket.getUpdatedAt());
 
-        // Load user names
+        // Include attachments by default
+        dto.setAttachments(getTicketAttachments(ticket.getId()));
+
+        // Load user names (with fallback for Email vs ID transition)
         if (ticket.getCreatedById() != null) {
             userRepository.findById(ticket.getCreatedById())
-                    .ifPresent(user -> dto.setCreatedByName(user.getName()));
+                    .ifPresentOrElse(
+                        user -> dto.setCreatedByName(user.getName()),
+                        () -> userRepository.findByEmail(ticket.getCreatedById())
+                                .ifPresent(user -> dto.setCreatedByName(user.getName()))
+                    );
         }
         if (ticket.getAssignedToId() != null) {
             userRepository.findById(ticket.getAssignedToId())
-                    .ifPresent(user -> dto.setAssignedToName(user.getName()));
+                    .ifPresentOrElse(
+                        user -> dto.setAssignedToName(user.getName()),
+                        () -> userRepository.findByEmail(ticket.getAssignedToId())
+                                .ifPresent(user -> dto.setAssignedToName(user.getName()))
+                    );
         }
 
         // Load resource name

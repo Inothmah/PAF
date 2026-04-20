@@ -5,7 +5,10 @@ import com.group.smartcampus.demo.model.TicketStatus;
 import com.group.smartcampus.demo.service.TicketService;
 import com.group.smartcampus.demo.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -33,9 +36,11 @@ public class TicketController {
             @RequestPart(value = "attachments", required = false) List<MultipartFile> attachments) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userId = authentication.getName();
+        String userEmail = authentication.getName();
 
         try {
+            UserResponseDto user = userService.getUserByEmail(userEmail);
+            String userId = user.getId();
             TicketResponseDto createdTicket = ticketService.createTicket(requestDto, userId);
 
             // Process attachments if provided
@@ -81,10 +86,18 @@ public class TicketController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('TECHNICIAN')")
     public ResponseEntity<List<TicketResponseDto>> getUserTickets() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userId = authentication.getName();
+        String userEmail = authentication.getName();
+        
+        boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         try {
-            List<TicketResponseDto> tickets = ticketService.getUserTickets(userId);
+            if (isAdmin) {
+                return ResponseEntity.ok(ticketService.getAllTickets());
+            }
+            
+            UserResponseDto user = userService.getUserByEmail(userEmail);
+            List<TicketResponseDto> tickets = ticketService.getUserTickets(user.getId(), userEmail);
             return ResponseEntity.ok(tickets);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(null);
@@ -113,10 +126,11 @@ public class TicketController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('TECHNICIAN')")
     public ResponseEntity<TicketResponseDto> getTicketById(@PathVariable String id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userId = authentication.getName();
+        String userEmail = authentication.getName();
 
         try {
-            TicketResponseDto ticket = ticketService.getTicketById(id, userId);
+            UserResponseDto user = userService.getUserByEmail(userEmail);
+            TicketResponseDto ticket = ticketService.getTicketById(id, user.getId());
             return ResponseEntity.ok(ticket);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
@@ -131,10 +145,11 @@ public class TicketController {
             @Valid @RequestBody TicketStatusUpdateDto updateDto) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userId = authentication.getName();
+        String userEmail = authentication.getName();
 
         try {
-            TicketResponseDto updatedTicket = ticketService.updateTicketStatus(id, updateDto, userId);
+            UserResponseDto user = userService.getUserByEmail(userEmail);
+            TicketResponseDto updatedTicket = ticketService.updateTicketStatus(id, updateDto, user.getId());
             return ResponseEntity.ok(updatedTicket);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(null);
@@ -149,10 +164,11 @@ public class TicketController {
             @Valid @RequestBody CommentRequestDto commentDto) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userId = authentication.getName();
+        String userEmail = authentication.getName();
 
         try {
-            TicketCommentDto comment = ticketService.addComment(id, commentDto, userId);
+            UserResponseDto user = userService.getUserByEmail(userEmail);
+            TicketCommentDto comment = ticketService.addComment(id, commentDto, user.getId());
             return new ResponseEntity<>(comment, HttpStatus.CREATED);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(null);
@@ -164,10 +180,11 @@ public class TicketController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('TECHNICIAN')")
     public ResponseEntity<List<TicketCommentDto>> getTicketComments(@PathVariable String id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userId = authentication.getName();
+        String userEmail = authentication.getName();
 
         try {
-            List<TicketCommentDto> comments = ticketService.getTicketComments(id, userId);
+            UserResponseDto user = userService.getUserByEmail(userEmail);
+            List<TicketCommentDto> comments = ticketService.getTicketComments(id, user.getId());
             return ResponseEntity.ok(comments);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(null);
@@ -182,10 +199,11 @@ public class TicketController {
             @Valid @RequestBody CommentRequestDto commentDto) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userId = authentication.getName();
+        String userEmail = authentication.getName();
 
         try {
-            TicketCommentDto updatedComment = ticketService.editComment(commentId, commentDto.getContent(), userId);
+            UserResponseDto user = userService.getUserByEmail(userEmail);
+            TicketCommentDto updatedComment = ticketService.editComment(commentId, commentDto.getContent(), user.getId());
             return ResponseEntity.ok(updatedComment);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(null);
@@ -197,12 +215,13 @@ public class TicketController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('TECHNICIAN')")
     public ResponseEntity<Void> deleteComment(@PathVariable String commentId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userId = authentication.getName();
+        String userEmail = authentication.getName();
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         try {
-            ticketService.deleteComment(commentId, userId, isAdmin);
+            UserResponseDto user = userService.getUserByEmail(userEmail);
+            ticketService.deleteComment(commentId, user.getId(), isAdmin);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -217,10 +236,11 @@ public class TicketController {
             @RequestParam("file") MultipartFile file) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userId = authentication.getName();
+        String userEmail = authentication.getName();
 
         try {
-            TicketAttachmentDto attachment = ticketService.addAttachment(id, file, userId);
+            UserResponseDto user = userService.getUserByEmail(userEmail);
+            TicketAttachmentDto attachment = ticketService.addAttachment(id, file, user.getId());
             return new ResponseEntity<>(attachment, HttpStatus.CREATED);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(null);
@@ -241,17 +261,34 @@ public class TicketController {
         }
     }
 
+    // Get actual file content
+    @GetMapping("/attachments/{attachmentId}")
+    public ResponseEntity<Resource> getAttachmentFile(@PathVariable String attachmentId) {
+        try {
+            Resource resource = ticketService.getAttachmentResource(attachmentId);
+            String contentType = ticketService.getAttachmentContentType(attachmentId);
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
+                    .body(resource);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     // Delete attachment
     @DeleteMapping("/attachments/{attachmentId}")
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('TECHNICIAN')")
     public ResponseEntity<Void> deleteAttachment(@PathVariable String attachmentId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userId = authentication.getName();
+        String userEmail = authentication.getName();
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         try {
-            ticketService.deleteAttachment(attachmentId, userId, isAdmin);
+            UserResponseDto user = userService.getUserByEmail(userEmail);
+            ticketService.deleteAttachment(attachmentId, user.getId(), isAdmin);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
@@ -265,12 +302,13 @@ public class TicketController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN') or hasRole('TECHNICIAN')")
     public ResponseEntity<Void> deleteTicket(@PathVariable String id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String userId = authentication.getName();
+        String userEmail = authentication.getName();
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"));
 
         try {
-            ticketService.deleteTicket(id, userId, isAdmin);
+            UserResponseDto user = userService.getUserByEmail(userEmail);
+            ticketService.deleteTicket(id, user.getId(), isAdmin);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();

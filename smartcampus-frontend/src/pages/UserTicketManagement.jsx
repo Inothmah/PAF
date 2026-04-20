@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { ticketService } from '../services/ticketService';
 import TicketForm from '../components/TicketForm';
+import TicketImageGallery from '../components/TicketImageGallery';
 
 const UserTicketManagement = () => {
   const navigate = useNavigate();
@@ -104,6 +105,17 @@ const UserTicketManagement = () => {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-10">
+        {/* System Error Message */}
+        {error && (
+          <div className="mb-8 p-5 bg-red-600/10 border-l-8 border-red-600 text-red-600 rounded-2xl flex items-center gap-4 animate-in slide-in-from-left-4">
+            <AlertTriangle className="w-6 h-6 animate-pulse" />
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black uppercase tracking-widest leading-none mb-1">CRITICAL ERROR</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">{error}</span>
+            </div>
+          </div>
+        )}
+
         {successMessage && (
           <div className="mb-8 p-5 bg-black border-l-8 border-green-500 text-white rounded-2xl flex items-center gap-4 animate-in slide-in-from-left-4">
             <CheckCircle className="w-6 h-6 text-green-500" />
@@ -140,70 +152,80 @@ const UserTicketManagement = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {filteredTickets.map((ticket) => (
-              <div 
-                key={ticket.id} 
-                className={`bg-white rounded-[2.5rem] p-8 border-2 relative overflow-hidden transition-all ${
-                  ticket.priority === 'CRITICAL' ? 'border-red-600' : 'border-black'
-                }`}
-              >
-                {ticket.priority === 'CRITICAL' && (
-                  <div className="absolute top-0 right-0 bg-red-600 text-white px-8 py-1 rotate-45 translate-x-8 translate-y-2 text-[8px] font-black uppercase">
-                    Critical
-                  </div>
-                )}
-
-                <div className="flex justify-between items-start mb-8">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-black flex items-center justify-center text-xl text-white shadow-lg">
-                      {ticket.category === 'HARDWARE' ? '🔧' : ticket.category === 'SOFTWARE' ? '💻' : '⚙️'}
+            {filteredTickets.length > 0 ? (
+              filteredTickets.map((ticket) => (
+                <div 
+                  key={ticket.id} 
+                  className={`bg-white rounded-[2.5rem] p-8 border-2 relative overflow-hidden transition-all ${
+                    ticket.priority === 'CRITICAL' ? 'border-red-600' : 'border-black'
+                  }`}
+                >
+                  {ticket.priority === 'CRITICAL' && (
+                    <div className="absolute top-0 right-0 bg-red-600 text-white px-8 py-1 rotate-45 translate-x-8 translate-y-2 text-[8px] font-black uppercase">
+                      Critical
                     </div>
-                    <div>
-                      <h3 className="text-[11px] font-black uppercase text-black">{ticket.category}</h3>
-                      <div className="flex items-center gap-2 mt-1">
-                        <MapPin className="w-3 h-3 text-red-600" />
-                        <span className="text-[9px] font-black text-slate-500 uppercase">{ticket.location || 'Site Alpha'}</span>
+                  )}
+
+                  <div className="flex justify-between items-start mb-8">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-black flex items-center justify-center text-xl text-white shadow-lg">
+                        {ticket.category === 'HARDWARE' ? '🔧' : ticket.category === 'SOFTWARE' ? '💻' : '⚙️'}
+                      </div>
+                      <div>
+                        <h3 className="text-[11px] font-black uppercase text-black">{ticket.category}</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          <MapPin className="w-3 h-3 text-red-600" />
+                          <span className="text-[9px] font-black text-slate-500 uppercase">{ticket.location || 'Site Alpha'}</span>
+                        </div>
                       </div>
                     </div>
+                    <span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border ${getStatusStyle(ticket.status)}`}>
+                      {ticket.status}
+                    </span>
                   </div>
-                  <span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border ${getStatusStyle(ticket.status)}`}>
-                    {ticket.status}
-                  </span>
-                </div>
 
-                <div className="bg-slate-50 p-6 rounded-3xl mb-8 border border-slate-100">
-                  <p className="text-xs font-black text-black leading-relaxed">
-                    {ticket.description}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between py-5 border-t-2 border-slate-100 mb-6 font-black text-[10px] uppercase">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-red-600" />
-                    <span>{formatTime(ticket.createdAt)}</span>
+                  <div className="bg-slate-50 p-6 rounded-3xl mb-8 border border-slate-100">
+                    <p className="text-xs font-black text-black leading-relaxed">
+                      {ticket.description}
+                    </p>
                   </div>
-                  <div className={`flex items-center gap-2 ${ticket.priority === 'CRITICAL' ? 'text-red-600' : 'text-black'}`}>
-                    <AlertTriangle className="w-4 h-4" />
-                    <span>{ticket.priority}</span>
+
+                  <div className="flex items-center justify-between py-5 border-t-2 border-slate-100 mb-6 font-black text-[10px] uppercase">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-red-600" />
+                      <span>{formatTime(ticket.createdAt)}</span>
+                    </div>
+                    <div className={`flex items-center gap-2 ${ticket.priority === 'CRITICAL' ? 'text-red-600' : 'text-black'}`}>
+                      <AlertTriangle className="w-4 h-4" />
+                      <span>{ticket.priority}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => { setSelectedTicket(ticket); setShowTicketDetails(true); }}
+                      className="flex-1 py-4 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                      Examine <ChevronRight className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTicket(ticket.id)}
+                      className="p-4 bg-white border-2 border-black text-black hover:bg-red-50 hover:text-red-600 rounded-2xl transition-all"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => { setSelectedTicket(ticket); setShowTicketDetails(true); }}
-                    className="flex-1 py-4 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] active:scale-95 transition-all flex items-center justify-center gap-2"
-                  >
-                    Examine <ChevronRight className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteTicket(ticket.id)}
-                    className="p-4 bg-white border-2 border-black text-black hover:bg-red-50 hover:text-red-600 rounded-2xl transition-all"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+              ))
+            ) : (
+              <div className="col-span-full py-24 bg-white border-2 border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center text-center px-10">
+                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-6">
+                  <Radiation className="w-10 h-10 text-slate-300" />
                 </div>
+                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter mb-2">System Log Empty</h3>
+                <p className="text-slate-400 text-xs font-bold max-w-xs leading-relaxed uppercase tracking-widest">No active incidents detected in your proximity. Surveillance reporting zero threats.</p>
               </div>
-            ))}
+            )}
           </div>
         )}
       </main>
@@ -234,6 +256,12 @@ const UserTicketManagement = () => {
                 <p className="text-red-600 font-black mb-4 uppercase tracking-[0.3em]">-- Incident Data --</p>
                 {selectedTicket.description}
               </div>
+
+              {selectedTicket.attachments && selectedTicket.attachments.length > 0 && (
+                <div className="pt-4 border-t border-slate-100">
+                  <TicketImageGallery attachments={selectedTicket.attachments} />
+                </div>
+              )}
             </div>
             
             <div className="p-8 bg-slate-50 text-center">

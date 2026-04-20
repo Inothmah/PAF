@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { ticketService } from '../services/ticketService';
 import TicketForm from '../components/TicketForm';
+import TicketImageGallery from '../components/TicketImageGallery';
 import NotificationBell from '../components/NotificationBell';
 
 const TechnicianDashboard = () => {
@@ -278,7 +279,15 @@ const TechnicianDashboard = () => {
                    <p className="text-orange-500 font-black mb-4 uppercase tracking-[0.2em]">-- SYSTEM LOG READOUT --</p>
                    {selectedTicket.description}
                 </div>
+                
+                {selectedTicket.attachments && selectedTicket.attachments.length > 0 && (
+                  <div className="pt-4 border-t border-slate-100">
+                    <TicketImageGallery attachments={selectedTicket.attachments} />
+                  </div>
+                )}
+                
                 <button onClick={() => setSelectedTicket(null)} className="w-full py-5 border-2 border-slate-900 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-900 hover:text-white transition-all shadow-md">Close Report</button>
+
             </div>
           </div>
         </div>

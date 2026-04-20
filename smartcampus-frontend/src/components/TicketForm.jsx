@@ -20,6 +20,7 @@ const TicketForm = ({ onSave, onCancel }) => {
   const [resources, setResources] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [resourcesLoading, setResourcesLoading] = useState(true);
 
   const categories = [
@@ -53,14 +54,43 @@ const TicketForm = ({ onSave, onCancel }) => {
     }
   };
 
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!formData.resourceId && !formData.location.trim()) {
+      newErrors.location = 'IDENTIFICATION REQUIRED: Select a resource or specify location.';
+    }
+
+    if (!formData.description.trim()) {
+      newErrors.description = 'DESCRIPTION REQUIRED: Please explain the issue.';
+    } else if (formData.description.trim().length < 10) {
+      newErrors.description = 'DESCRIPTION TOO SHORT: Minimum 10 characters required.';
+    }
+
+    if (formData.contactDetails.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const phoneRegex = /^[0-9+()-\s]{7,15}$/;
+      if (!emailRegex.test(formData.contactDetails) && !phoneRegex.test(formData.contactDetails)) {
+        newErrors.contactDetails = 'INVALID FORMAT: Please enter a valid email or phone number.';
+      }
+    }
+
+    setFieldErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+    setFieldErrors({});
+
+    if (!validateForm()) {
+      setError('VALIDATION FAILED: Please check the highlighted fields.');
+      return;
+    }
+
+    setLoading(true);
     try {
-      if (!formData.resourceId && !formData.location.trim()) {
-        throw new Error('IDENTIFICATION REQUIRED: Select a resource or specify location.');
-      }
       await ticketService.createTicket(formData, attachments);
       onSave();
     } catch (err) {
@@ -74,15 +104,27 @@ const TicketForm = ({ onSave, onCancel }) => {
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
+    let newError = null;
+
     if (attachments.length + files.length > 3) {
-      setError('BUFFER OVERFLOW: Maximum 3 attachments allowed.');
+      newError = 'BUFFER OVERFLOW: Maximum 3 attachments allowed.';
+    }
+
+    const invalidTypeFiles = files.filter(file => !file.type.startsWith('image/'));
+    if (invalidTypeFiles.length > 0) {
+      newError = 'FORMAT REJECTED: Only image files are accepted.';
+    }
+
+    const oversizedFiles = files.filter(file => file.size > 5 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      newError = 'PAYLOAD TOO LARGE: Each file must be under 5MB.';
+    }
+
+    if (newError) {
+      setError(newError);
       return;
     }
-    const invalidFiles = files.filter(file => !file.type.startsWith('image/'));
-    if (invalidFiles.length > 0) {
-      setError('FORMAT REJECTED: Only image files are accepted.');
-      return;
-    }
+
     setAttachments(prev => [...prev, ...files]);
     setError(null);
   };
@@ -132,7 +174,9 @@ const TicketForm = ({ onSave, onCancel }) => {
               <select
                 value={formData.resourceId}
                 onChange={(e) => handleChange('resourceId', e.target.value)}
-                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-black text-sm font-black text-black appearance-none"
+                className={`w-full px-5 py-4 bg-slate-50 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-black text-sm font-black text-black appearance-none transition-all ${
+                  fieldErrors.resourceId ? 'border-red-500' : 'border-slate-200'
+                }`}
               >
                 <option value="">SCANNING: Select Resource...</option>
                 {resources.map((res) => (
@@ -151,8 +195,11 @@ const TicketForm = ({ onSave, onCancel }) => {
                 value={formData.location}
                 onChange={(e) => handleChange('location', e.target.value)}
                 placeholder="Ex: Room 402, Level 2"
-                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-black text-sm font-black text-black placeholder:text-slate-300"
+                className={`w-full px-5 py-4 bg-slate-50 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-black text-sm font-black text-black placeholder:text-slate-300 transition-all ${
+                  fieldErrors.location ? 'border-red-500' : 'border-slate-200'
+                }`}
               />
+              {fieldErrors.location && <p className="text-[8px] font-black text-red-600 uppercase mt-2 ml-1">{fieldErrors.location}</p>}
             </div>
           </div>
 
@@ -209,8 +256,11 @@ const TicketForm = ({ onSave, onCancel }) => {
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
               placeholder="Provide specific details about the anomaly..."
-              className="w-full px-6 py-4 bg-slate-50 border border-slate-200 rounded-3xl focus:outline-none focus:ring-2 focus:ring-black text-sm font-black text-black placeholder:text-slate-300 resize-none"
+              className={`w-full px-6 py-4 bg-slate-50 border rounded-3xl focus:outline-none focus:ring-2 focus:ring-black text-sm font-black text-black placeholder:text-slate-300 resize-none transition-all ${
+                fieldErrors.description ? 'border-red-500' : 'border-slate-200'
+              }`}
             />
+            {fieldErrors.description && <p className="text-[8px] font-black text-red-600 uppercase mt-2 ml-1">{fieldErrors.description}</p>}
           </div>
 
           {/* Contact Details */}
@@ -223,8 +273,11 @@ const TicketForm = ({ onSave, onCancel }) => {
               value={formData.contactDetails}
               onChange={(e) => handleChange('contactDetails', e.target.value)}
               placeholder="Email or Phone for follow-up"
-              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-black text-sm font-black text-black"
+              className={`w-full px-5 py-4 bg-slate-50 border rounded-2xl focus:outline-none focus:ring-2 focus:ring-black text-sm font-black text-black transition-all ${
+                fieldErrors.contactDetails ? 'border-red-500' : 'border-slate-200'
+              }`}
             />
+            {fieldErrors.contactDetails && <p className="text-[8px] font-black text-red-600 uppercase mt-2 ml-1">{fieldErrors.contactDetails}</p>}
           </div>
 
           {/* Attachments Section */}

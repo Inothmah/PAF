@@ -65,12 +65,7 @@ const BookingForm = ({ resource = null, onSave, onCancel }) => {
       const start = new Date(formData.startTime);
       const end = new Date(formData.endTime);
       if (end <= start) {
-        errors.endTime = "End time must be after start time.";
-      } else {
-        const diffInMins = (end - start) / (1000 * 60);
-        if (diffInMins < 15) {
-          errors.endTime = "Booking must be at least 15 mins.";
-        }
+        errors.endTime = "End time must be after start time";
       }
     }
 
@@ -109,38 +104,18 @@ const BookingForm = ({ resource = null, onSave, onCancel }) => {
   };
 
   const handleChange = (field, value) => {
-    let nextFormData = { ...formData, [field]: value };
-    let autoAdjusted = false;
-
-    // Optional Auto-Adjustment & Validation for Dates
-    if ((field === 'startTime' || field === 'endTime') && nextFormData.startTime && nextFormData.endTime) {
-      const start = new Date(nextFormData.startTime);
-      const end = new Date(nextFormData.endTime);
-      
-      if (end <= start) {
-        // Auto adjust the end time to be 15 minutes after start time
-        const adjustedEnd = new Date(start.getTime() + 15 * 60000);
-        const offset = adjustedEnd.getTimezoneOffset() * 60000;
-        const localISOTime = (new Date(adjustedEnd - offset)).toISOString().slice(0, 16);
-        
-        nextFormData.endTime = localISOTime;
-        autoAdjusted = true;
-      }
-    }
-
+    const nextFormData = { ...formData, [field]: value };
     setFormData(nextFormData);
 
-    // Apply real-time error messages
     const newErrors = { ...formErrors, [field]: undefined };
 
+    // Apply strict real-time validation for dates
     if (field === 'startTime' || field === 'endTime') {
-      if (autoAdjusted) {
-        newErrors.endTime = "End time must be after start time. (Auto-adjusted)";
-      } else if (nextFormData.startTime && nextFormData.endTime) {
+      if (nextFormData.startTime && nextFormData.endTime) {
         const start = new Date(nextFormData.startTime);
         const end = new Date(nextFormData.endTime);
         if (end <= start) {
-          newErrors.endTime = "End time must be after start time.";
+          newErrors.endTime = "End time must be after start time";
         } else {
           newErrors.endTime = undefined;
         }

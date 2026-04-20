@@ -127,7 +127,7 @@ export const bookingService = {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(rejectionReason),
+        body: JSON.stringify({ reason: rejectionReason }),
       });
 
       if (!response.ok) {

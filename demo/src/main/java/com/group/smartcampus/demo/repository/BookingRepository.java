@@ -3,6 +3,7 @@ package com.group.smartcampus.demo.repository;
 import com.group.smartcampus.demo.model.Booking;
 import com.group.smartcampus.demo.model.BookingStatus;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -30,6 +31,15 @@ public interface BookingRepository extends MongoRepository<Booking, String> {
         LocalDateTime startTime, 
         LocalDateTime endTime
     );
+    
+    // Find approved bookings that overlap with the given time range
+    @Query("{ 'resourceId': ?0, 'status': ?1, '$or': [ " +
+           "{ 'startTime': { $lt: ?3 }, 'endTime': { $gt: ?2 } }, " +
+           "{ 'startTime': { $lt: ?3, $gte: ?2 } }, " +
+           "{ 'endTime': { $gt: ?2, $lte: ?3 } }, " +
+           "{ 'startTime': { $lte: ?2 }, 'endTime': { $gte: ?3 } } ] }")
+    List<Booking> findOverlappingBookings(String resourceId, BookingStatus status, 
+                                         LocalDateTime startTime, LocalDateTime endTime);
     
     // Find all pending bookings (for admin review)
     List<Booking> findByStatus(BookingStatus status);

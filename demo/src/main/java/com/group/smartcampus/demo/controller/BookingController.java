@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/bookings")
@@ -95,7 +96,9 @@ public class BookingController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BookingResponseDto> rejectBooking(
             @PathVariable String id,
-            @RequestBody(required = false) String rejectionReason) {
+            @RequestBody(required = false) Map<String, String> requestBody) {
+        
+        String rejectionReason = requestBody != null ? requestBody.get("reason") : null;
         
         try {
             BookingResponseDto rejectedBooking = bookingService.rejectBooking(id, rejectionReason);

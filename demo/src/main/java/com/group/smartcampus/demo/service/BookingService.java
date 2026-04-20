@@ -184,11 +184,11 @@ public class BookingService {
 
     // Check for booking conflicts (excluding specific booking)
     private boolean hasBookingConflict(String resourceId, LocalDateTime startTime, LocalDateTime endTime, String excludeBookingId) {
-        List<Booking> conflictingBookings = bookingRepository.findByResourceIdAndStatusAndStartTimeBetween(
+        List<Booking> conflictingBookings = bookingRepository.findOverlappingBookings(
                 resourceId, 
                 BookingStatus.APPROVED, 
-                startTime.minusMinutes(1), // Add buffer time
-                endTime.plusMinutes(1) // Add buffer time
+                startTime, 
+                endTime
         );
 
         return conflictingBookings.stream()
